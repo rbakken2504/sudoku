@@ -1,15 +1,15 @@
 class Sudoku
 
   possibleVals = [1,2,3,4,5,6,7,8,9]
-  row1 = [7,9,6,8," ",4,3,2,1]
+  row1 = [7,9," ",8,5,4,3,2,1]
   row2 = [2,4,3,1,7,6,9,8,5]
-  row3 = [8,5," ",2,3,9,4,7,6]
-  row4 = [1,3,7,9," ",5,8,4,2]
+  row3 = [8,5,1,2,3,9,4,7,6]
+  row4 = [1,3,7,9,6,5,8,4,2]
   row5 = [9,2,5,4,1,8,7,6,3]
-  row6 = [4,6,8,7,2,3,5,1,9]
+  row6 = [4,6,8,7,2,3,5," ",9]
   row7 = [6,1,4,5,9,7,2,3,8]
-  row8 = [5,8,2,3,4," ",6,9,7]
-  row9 = [3,7,9,6,8,2,1,5,4]
+  row8 = [5,8,2,3,4,1,6,9,7]
+  row9 = [" ",7,9,6,8,2,1,5,4]
   grid = [row1, row2, row3,
           row4, row5, row6,
           row7, row8, row9]
@@ -24,14 +24,20 @@ class Sudoku
   end
 
   def self.get_index_of_empty(grid)
-    index = -1
+    column = -1
     row = -1
     (0..8).each do |i|
-      index = grid[i].index(" ")
-      row = i
-      break
+      column = grid[i].index(" ")
+      if column != nil
+        row = i
+      end
+      break if( column != nil )
     end
-    return row, index
+    if(column == nil)
+      row = -1
+      column = -1
+    end
+    return row, column
   end
 
   def self.grid_helper(row_column_val)
@@ -77,10 +83,20 @@ class Sudoku
     return possible_row_vals, possible_col_vals, possible_grid_vals
   end
 
+  def self.solve_sudoku(grid, possibleVals)
+    print_grid(grid)
+    loop do
+      row, column = get_index_of_empty(grid)
+      puts "row: #{row} column: #{column}"
+      break if(row == -1 && column == -1)
+      p_row, p_col, p_grid = possible_values_for_cell(grid, row, column, possibleVals)
+      p_val_difference = p_row - p_col - p_grid
+      if(p_val_difference.count == 0)
+        grid[row][column] = p_row[0]
+      end
+    end
+  end
+  solve_sudoku(grid, possibleVals)
   print_grid(grid)
-  row, column = get_index_of_empty(grid)
-  p_row, p_col, p_grid = possible_values_for_cell(grid, row, column, possibleVals)
-
-  print p_col
 
 end

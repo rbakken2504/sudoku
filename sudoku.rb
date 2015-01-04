@@ -3,8 +3,8 @@ class Sudoku
   @empty_cells_possible_vals = []
   @empty_cell_locations = []
   @empty_cells = 0
+  @possibleVals = [1,2,3,4,5,6,7,8,9]
 
-  possibleVals = [1,2,3,4,5,6,7,8,9]
   row1 = [7,9,6," ", " ", " ", 3, " ", " "]
   row2 = [" "," "," "," ", 7, 6, 9, " ", " "]
   row3 = [8," ", " ", " ", 3, " ", " ", 7, 6]
@@ -78,24 +78,24 @@ class Sudoku
     return column_vals
   end
 
-  def self.possible_values_for_cell(grid, row, column, possibleVals)
+  def self.possible_values_for_cell(grid, row, column)
     column_vals = push_column_values(grid, column)
     grid_vals = push_grid_values(grid, row, column)
-    possible_row_vals = possibleVals - grid[row]
+    possible_row_vals = @possibleVals - grid[row]
     possible_cell_vals = possible_row_vals - column_vals - grid_vals
     return possible_cell_vals
   end
 
-  def self.possible_values_for_all_cells(grid, possibleVals)
+  def self.possible_values_for_all_cells(grid)
     get_index_of_empty(grid)
     (0..@empty_cell_locations.count - 1).each do |i|
       row = @empty_cell_locations[i][0]
       column = @empty_cell_locations[i][1]
-      @empty_cells_possible_vals.push([row, column, possible_values_for_cell(grid, row, column, possibleVals)])
+      @empty_cells_possible_vals.push([row, column, possible_values_for_cell(grid, row, column)])
     end
   end
 
-  def self.solve_sudoku(grid, possibleVals)
+  def self.solve_sudoku(grid)
     i = 0
     while( i < @empty_cells_possible_vals.count ) do
       if(@empty_cells_possible_vals[i][2].count == 1)
@@ -113,12 +113,12 @@ class Sudoku
   end
 
 
-  possible_values_for_all_cells(grid, possibleVals)
+  possible_values_for_all_cells(grid)
   #print_grid(grid)
   #puts "------------------------------"
   while(@empty_cells >= 0) do
-    solve_sudoku(grid, possibleVals)
-    possible_values_for_all_cells(grid, possibleVals)
+    solve_sudoku(grid)
+    possible_values_for_all_cells(grid)
   end
 
 end

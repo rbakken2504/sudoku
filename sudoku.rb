@@ -1,15 +1,19 @@
 class Sudoku
 
+  @empty_cells_possible_vals = []
+  @empty_cell_locations = []
+  @empty_cells = 0
+
   possibleVals = [1,2,3,4,5,6,7,8,9]
-  row1 = [7,9," ",8,5,4,3,2,1]
-  row2 = [2,4,3,1,7,6,9,8,5]
-  row3 = [8,5,1,2,3,9,4,7,6]
-  row4 = [1,3,7,9,6,5,8,4,2]
-  row5 = [9,2,5,4,1,8,7,6,3]
-  row6 = [4,6,8,7,2,3,5," ",9]
-  row7 = [6,1,4,5,9,7,2,3,8]
-  row8 = [5,8,2,3,4,1,6,9,7]
-  row9 = [" ",7,9,6,8,2,1,5,4]
+  row1 = [7,9,6," ", " ", " ", 3, " ", " "]
+  row2 = [" "," "," "," ", 7, 6, 9, " ", " "]
+  row3 = [8," ", " ", " ", 3, " ", " ", 7, 6]
+  row4 = [" ", " ", " ", " ", " ", 5, " ", " ", 2]
+  row5 = [" ", " ", 5, 4,1,8,7," ", " "]
+  row6 = [4, " ", " ", 7, " ", " ", " ", " ", " "]
+  row7 = [6,1," ", " ", 9, " ", " ", " ", 8]
+  row8 = [5, " ", 2, 3, " ", " ", " ", " ", " "]
+  row9 = [3, " ", 9, " ", " ", " ", " ", 5, 4]
   grid = [row1, row2, row3,
           row4, row5, row6,
           row7, row8, row9]
@@ -24,20 +28,20 @@ class Sudoku
   end
 
   def self.get_index_of_empty(grid)
-    column = -1
-    row = -1
-    (0..8).each do |i|
-      column = grid[i].index(" ")
-      if column != nil
-        row = i
+    returnVals = []
+    if grid == nil
+      return []
+    else
+      (0..8).each do |row|
+        (0..8).each do |column|
+          if(grid[row][column] == " ")
+            @empty_cells = @empty_cells + 1
+            @empty_cell_locations.push([row, column])
+            get_index_of_empty(grid[row][column + 1, -1])
+          end
+        end
       end
-      break if( column != nil )
     end
-    if(column == nil)
-      row = -1
-      column = -1
-    end
-    return row, column
   end
 
   def self.grid_helper(row_column_val)
@@ -78,25 +82,43 @@ class Sudoku
     column_vals = push_column_values(grid, column)
     grid_vals = push_grid_values(grid, row, column)
     possible_row_vals = possibleVals - grid[row]
-    possible_col_vals = possibleVals - column_vals
-    possible_grid_vals = possibleVals - grid_vals
-    return possible_row_vals, possible_col_vals, possible_grid_vals
+    possible_cell_vals = possible_row_vals - column_vals - grid_vals
+    return possible_cell_vals
+  end
+
+  def self.possible_values_for_all_cells(grid, possibleVals)
+    get_index_of_empty(grid)
+    (0..@empty_cell_locations.count - 1).each do |i|
+      row = @empty_cell_locations[i][0]
+      column = @empty_cell_locations[i][1]
+      @empty_cells_possible_vals.push([row, column, possible_values_for_cell(grid, row, column, possibleVals)])
+    end
   end
 
   def self.solve_sudoku(grid, possibleVals)
-    print_grid(grid)
-    loop do
-      row, column = get_index_of_empty(grid)
-      puts "row: #{row} column: #{column}"
-      break if(row == -1 && column == -1)
-      p_row, p_col, p_grid = possible_values_for_cell(grid, row, column, possibleVals)
-      p_val_difference = p_row - p_col - p_grid
-      if(p_val_difference.count == 0)
-        grid[row][column] = p_row[0]
+    i = 0
+    while( i < @empty_cells_possible_vals.count ) do
+      if(@empty_cells_possible_vals[i][2].count == 1)
+        row = @empty_cells_possible_vals[i][0]
+        column = @empty_cells_possible_vals[i][1]
+        possible_value = @empty_cells_possible_vals[i][2][0]
+        grid[row][column] = possible_value
+        @empty_cells_possible_vals.delete_at(i)
+        @empty_cells = @empty_cells - 1
       end
+      i = i + 1
     end
+    print_grid(grid)
+    puts "----------------------------"
   end
-  solve_sudoku(grid, possibleVals)
-  print_grid(grid)
+
+
+  possible_values_for_all_cells(grid, possibleVals)
+  #print_grid(grid)
+  #puts "------------------------------"
+  while(@empty_cells >= 0) do
+    solve_sudoku(grid, possibleVals)
+    possible_values_for_all_cells(grid, possibleVals)
+  end
 
 end

@@ -1,12 +1,12 @@
 class Sudoku
   @empty_cell_locations = []
-  @empty_cells = 0
-  @empty_cells_hash = Hash.new
+  @empty_cells = 1
   @possibleVals = [1,2,3,4,5,6,7,8,9]
+  @empty_cells_hash = Hash.new
   @decision_tree = []
   @left_node_tried = nil
 
-  #Initialize Hash so I can push array into subgrid locations
+  #Initialize subgrid_hash
   @subgrid_hash = Hash.new
   @subgrid_hash["1"] = []
   @subgrid_hash["2"] = []
@@ -18,22 +18,22 @@ class Sudoku
   @subgrid_hash["8"] = []
   @subgrid_hash["9"] = []
 
-  row1 = [" ", " ", 5, " ", 9, " ", " ", " ", 1]
-  row2 = [" ", " ", " ", " ", " ", 2, " ", 7, 3]
-  row3 = [7, 6, " ", " ", " ", 8, 2, " ", " "]
-  row4 = [" ", 1, 2, " ", " ", 9, " ", " ", 4]
-  row5 = [" ", " ", " ", 2, " ", 3, " ", " ", " "]
-  row6 = [3, " ", " ", 1, " ", " ", 9, 6, " "]
-  row7 = [" ", " ", 1, 9, " ", " ", " ", 5, 8]
-  row8 = [9, 7, " ", 5, " ", " ", " ", " ", " "]
-  row9 = [5, " ", " ", " ", 3, " ", 7, " ", " "]
+  row1 = [7,9,6," ", " ", " ", 3, " ", " "]
+  row2 = [" "," "," "," ", 7, 6, 9, " ", " "]
+  row3 = [8," ", " ", " ", 3, " ", " ", 7, 6]
+  row4 = [" ", " ", " ", " ", " ", 5, " ", " ", 2]
+  row5 = [" ", " ", 5, 4,1,8,7," ", " "]
+  row6 = [4, " ", " ", 7, " ", " ", " ", " ", " "]
+  row7 = [6,1," ", " ", 9, " ", " ", " ", 8]
+  row8 = [5, " ", 2, 3, " ", " ", " ", " ", " "]
+  row9 = [3, " ", 9, " ", " ", " ", " ", 5, 4]
   @grid = [row1, row2, row3,
-          row4, row5, row6,
-          row7, row8, row9]
+           row4, row5, row6,
+           row7, row8, row9]
 
-  def self.print_grid
+  def self.print_grid(grid)
     (0..8).each do |i|
-      @grid[i].each do |num|
+      grid[i].each do |num|
         print num
       end
       puts
@@ -45,6 +45,7 @@ class Sudoku
       return []
     else
       @empty_cell_locations.clear
+      @empty_cells = 0
       (0..8).each do |row|
         (0..8).each do |column|
           if(local_grid[row][column] == " ")
@@ -68,33 +69,33 @@ class Sudoku
     return local_val
   end
 
-  def self.push_grid_values(row, column)
+  def self.push_grid_values(grid, row, column)
     local_row = grid_helper(row)
     local_column = grid_helper(column)
     local_grid = []
     count = 0
     while(count < 3) do
-      local_grid.push(@grid[local_row][local_column])
-      local_grid.push(@grid[local_row][local_column + 1])
-      local_grid.push(@grid[local_row][local_column + 2])
+      local_grid.push(grid[local_row][local_column])
+      local_grid.push(grid[local_row][local_column + 1])
+      local_grid.push(grid[local_row][local_column + 2])
       local_row = local_row + 1
       count = count + 1
     end
     return local_grid
   end
 
-  def self.push_column_values(column)
+  def self.push_column_values(grid, column)
     column_vals = []
     (0..8).each do |row|
-      column_vals.push(@grid[row][column])
+      column_vals.push(grid[row][column])
     end
     return column_vals
   end
 
-  def self.possible_values_for_cell(row, column)
-    column_vals = push_column_values(column)
-    grid_vals = push_grid_values(row, column)
-    possible_row_vals = @possibleVals - @grid[row]
+  def self.possible_values_for_cell(grid, row, column)
+    column_vals = push_column_values(grid, column)
+    grid_vals = push_grid_values(grid, row, column)
+    possible_row_vals = @possibleVals - grid[row]
     possible_cell_vals = possible_row_vals - column_vals - grid_vals
     return possible_cell_vals
   end
@@ -158,8 +159,8 @@ class Sudoku
     end
   end
 
-  def self.possible_values_for_all_cells
-    get_index_of_empty(@grid)
+  def self.possible_values_for_all_cells(grid)
+    get_index_of_empty(grid)
     (1..9).each do |s_grid|
       @subgrid_hash["#{s_grid}"].clear
     end
@@ -167,9 +168,8 @@ class Sudoku
       row = @empty_cell_locations[i][0]
       column = @empty_cell_locations[i][1]
       subgrid = define_subgrid_location(row, column)
-      possible_values_cell = possible_values_for_cell(row, column)
+      possible_values_cell = possible_values_for_cell(grid, row, column)
       @empty_cells_hash["#{row}#{column}"] = possible_values_cell
-      #@empty_cells_possible_vals.push([row, column, subgrid, possible_values_cell])
       @subgrid_hash["#{subgrid}"].push([row, column, possible_values_cell])
     end
     eliminate_possible_values_grid
@@ -215,7 +215,7 @@ class Sudoku
     end
   end
 
-  def self.solve_empty_cells
+  def self.solve_empty_cells(grid)
     i = 0
     while( i < @empty_cell_locations.count ) do
       row = @empty_cell_locations[i][0]
@@ -229,35 +229,6 @@ class Sudoku
       end
       i = i + 1
     end
-
-  end
-
-  def self.determine_cell_to_use_and_val
-    row = nil
-    col = nil
-    vals = nil
-    (1..9).each do |key|
-      if (@subgrid_hash["#{key}"].count == 2)
-        row = @subgrid_hash["#{key}"][0][0]
-        col = @subgrid_hash["#{key}"][0][1]
-        vals = @subgrid_hash["#{key}"][0][2]
-      end
-    end
-    if(@left_node_tried == true)
-      @grid[row][col] = vals[1]
-      @empty_cells_hash.delete("#{row}#{col}")
-    else
-      @grid[row][col] = vals[0]
-      @empty_cells_hash.delete("#{row}#{col}")
-    end
-  end
-
-  def self.create_decision_tree
-    copy_grid = @grid
-    copy_subgrid = @subgrid_hash
-    copy_empty_locations = @empty_cell_locations
-    copy_cell_hash = @empty_cells_hash
-    @decision_tree.push([copy_grid, copy_subgrid, copy_empty_locations, copy_cell_hash])
   end
 
   def self.min_count_of_values
@@ -278,37 +249,20 @@ class Sudoku
     return min_value
   end
 
-  def self.solve_sudoku
-    possible_values_for_all_cells
-    while(@empty_cells >= 0) do
-      solve_empty_cells
-      possible_values_for_all_cells
-      min_cell_val_count = min_count_of_values
-      puts "Empty Cell Locations: "
-      print @empty_cell_locations
-      puts
-      puts "Empty Cell Hash: "
-      print @empty_cells_hash
-      puts
-      print_grid
-      puts "decision_tree Count: #{@decision_tree.count}"
-      if(min_cell_val_count > 1)
-        create_decision_tree
-        determine_cell_to_use_and_val
-      end
-      if(min_count_of_values == 0)
-        #@decision_tree.pop
-        state_to_revert_to = @decision_tree.pop
-        @grid = state_to_revert_to[0]
-        @subgrid_hash = state_to_revert_to[1]
-        @empty_cell_locations = state_to_revert_to[2]
-        @empty_cells_hash = state_to_revert_to[3]
-        @left_node_tried = true
-      end
+  Test
 
+  def self.solve_sudoku(grid)
+    while( @empty_cells > 0 ) do
+      solve_empty_cells(@grid)
+      possible_values_for_all_cells(@grid)
+      min_cell_val_count = min_count_of_values
+      print_grid(grid)
+      puts "--------------------------"
+      puts "Empty Cells: #{@empty_cells}"
+      puts "Min Val: #{min_cell_val_count}"
     end
   end
 
-  solve_sudoku
+  solve_sudoku(@grid)
 
 end

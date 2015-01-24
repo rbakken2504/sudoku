@@ -1,10 +1,12 @@
+require "deep_clone"
+
 class Sudoku
   @empty_cell_locations = []
   @empty_cells = 1
   @possibleVals = [1,2,3,4,5,6,7,8,9]
   @empty_cells_hash = Hash.new
-  @decision_tree = []
-  @left_node_tried = nil
+  @decision_tree = Array.new
+  @both_child_leaves_tried = false
 
   #Initialize subgrid_hash
   @subgrid_hash = Hash.new
@@ -18,15 +20,15 @@ class Sudoku
   @subgrid_hash["8"] = []
   @subgrid_hash["9"] = []
 
-  row1 = [7,9,6," ", " ", " ", 3, " ", " "]
-  row2 = [" "," "," "," ", 7, 6, 9, " ", " "]
-  row3 = [8," ", " ", " ", 3, " ", " ", 7, 6]
-  row4 = [" ", " ", " ", " ", " ", 5, " ", " ", 2]
-  row5 = [" ", " ", 5, 4,1,8,7," ", " "]
-  row6 = [4, " ", " ", 7, " ", " ", " ", " ", " "]
-  row7 = [6,1," ", " ", 9, " ", " ", " ", 8]
-  row8 = [5, " ", 2, 3, " ", " ", " ", " ", " "]
-  row9 = [3, " ", 9, " ", " ", " ", " ", 5, 4]
+  row1 = [" ", " ", 5, " ", 9, " ", " ", " ", 1]
+  row2 = [" ", " ", " ", " ", " ", 2, " ", 7, 3]
+  row3 = [7, 6, " ", " ", " ", 8, 2, " ", " "]
+  row4 = [" ", 1, 2, " ", " ", 9, " ", " ", 4]
+  row5 = [" ", " ", " ", 2, " ", 3, " ", " ", " "]
+  row6 = [3, " ", " ", 1, " ", " ", 9, 6, " "]
+  row7 = [" ", " ", 1, 9, " ", " ", " ", 5, 8]
+  row8 = [9, 7, " ", 5, " ", " ", " ", " ", " "]
+  row9 = [5, " ", " ", " ", 3, " ", 7, " ", " "]
   @grid = [row1, row2, row3,
            row4, row5, row6,
            row7, row8, row9]
@@ -237,9 +239,6 @@ class Sudoku
       row = @empty_cell_locations[i][0]
       col = @empty_cell_locations[i][1]
       cell_values = @empty_cells_hash["#{row}#{col}"]
-      puts "ROW/COL: #{row}#{col}"
-      puts "CELL VALUES:"
-      puts cell_values
       if(cell_values.nil?)
         min_value = 0
       elsif(cell_values.count < min_value)
@@ -249,17 +248,81 @@ class Sudoku
     return min_value
   end
 
-  Test
+  @state_counter = 0
+  @revert_counter = 0
+
+
+  #TODO: Figure out how to save state; as of now it is acting as a pointer to @grid and the values are changing.
+  def self.save_state
+    copy_grid = DeepClone.clone(@grid)
+    copy_subgrid = DeepClone.clone(@subgrid_hash)
+    copy_empty_locations = DeepClone.clone(@empty_cell_locations)
+    copy_cell_hash = DeepClone.clone(@empty_cells_hash)
+    @decision_tree.push([copy_grid, copy_subgrid,
+                         copy_empty_locations,
+                         copy_cell_hash])
+  end
+
+  def self.revert_state
+    state_to_revert_to = @decision_tree.pop
+    @grid.replace(state_to_revert_to[0])
+    @subgrid_hash = state_to_revert_to[1]
+    @empty_cell_locations = state_to_revert_to[2]
+    @empty_cells_hash = state_to_revert_to[3]
+    @revert_counter = @revert_counter + 1
+  end
+
+  def self.try_left_leaf
+    (0..@empty_cell_locations.count - 1).each do |i|
+      row = @empty_cell_locations[i][0]
+      col = @empty_cell_locations[i][1]
+      cell_values = @empty_cells_hash["#{row}#{col}"]
+      puts "Cell Values>#{row}#{col}: #{cell_values}"
+      if(cell_values.count == 2)
+        @grid[row][col] = cell_values[0]
+        puts "SELECTED #{row}#{col}! with #{cell_values[0]}"
+        break
+      end
+    end
+  end
+
+  def self.try_right_leaf
+    (0..@empty_cell_locations.count - 1).each do |i|
+      row = @empty_cell_locations[i][0]
+      col = @empty_cell_locations[i][1]
+      cell_values = @empty_cells_hash["#{row}#{col}"]
+      if(cell_values.count == 2)
+        @grid[row][col] = cell_values[1]
+        break
+      end
+    end
+  end
+
+  def self.determine_branch_and_create_tree(min_count_of_possibles)
+    if (min_count_of_possibles != 1 && min_count_of_possibles != 9)
+      if (min_count_of_possibles == 2 && !@both_child_leaves_tried)
+        save_state
+        try_left_leaf
+      elsif (min_count_of_possibles == 0 && !@both_child_leaves_tried)
+        revert_state
+        try_right_leaf
+        @both_child_leaves_tried = true
+      else
+        revert_state
+        #try_right_leaf
+        @both_child_leaves_tried = false
+      end
+    end
+  end
 
   def self.solve_sudoku(grid)
     while( @empty_cells > 0 ) do
-      solve_empty_cells(@grid)
-      possible_values_for_all_cells(@grid)
+      solve_empty_cells(grid)
+      possible_values_for_all_cells(grid)
       min_cell_val_count = min_count_of_values
       print_grid(grid)
       puts "--------------------------"
-      puts "Empty Cells: #{@empty_cells}"
-      puts "Min Val: #{min_cell_val_count}"
+      determine_branch_and_create_tree(min_cell_val_count)
     end
   end
 

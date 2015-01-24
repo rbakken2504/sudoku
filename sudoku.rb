@@ -1,3 +1,5 @@
+require "deep_clone"
+
 class Sudoku
   @empty_cell_locations = []
   @empty_cells = 0
@@ -253,10 +255,10 @@ class Sudoku
   end
 
   def self.create_decision_tree
-    copy_grid = @grid
-    copy_subgrid = @subgrid_hash
-    copy_empty_locations = @empty_cell_locations
-    copy_cell_hash = @empty_cells_hash
+    copy_grid = DeepClone.clone(@grid)
+    copy_subgrid = DeepClone.clone(@subgrid_hash)
+    copy_empty_locations = DeepClone.clone(@empty_cell_locations)
+    copy_cell_hash = DeepClone.clone(@empty_cells_hash)
     @decision_tree.push([copy_grid, copy_subgrid, copy_empty_locations, copy_cell_hash])
   end
 
